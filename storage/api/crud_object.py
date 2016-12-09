@@ -24,7 +24,6 @@ For more information, see the README.md under /storage.
 """
 
 import argparse
-import filecmp
 import json
 import tempfile
 
@@ -32,6 +31,7 @@ from googleapiclient import discovery
 from googleapiclient import http
 
 from oauth2client.client import GoogleCredentials
+from six.moves import zip_longest
 
 
 def main(bucket, filename, readers=[], owners=[]):
@@ -40,12 +40,17 @@ def main(bucket, filename, readers=[], owners=[]):
     print(json.dumps(resp, indent=2))
 
     print('Fetching object..')
-    with tempfile.NamedTemporaryFile(mode='w+b') as tmpfile:
+    with tempfile.TemporaryFile(mode='w+b') as tmpfile:
         get_object(bucket, filename, out_file=tmpfile)
-        tmpfile.seek(0)
 
-        if not filecmp.cmp(filename, tmpfile.name):
-            raise Exception('Downloaded file != uploaded object')
+        # Verify that it's the same file
+        tmpfile.seek(0)
+        with open(filename, 'rb') as orig_file:
+            # Compare the files chunk by chunk for differences
+            if any(c1 != c2 for c1, c2 in zip_longest(
+                    iter(lambda: orig_file.read(2**18), ''),
+                    iter(lambda: tmpfile.read(2**18), ''))):
+                raise Exception('Downloaded file != uploaded object')
 
     print('Deleting object..')
     resp = delete_object(bucket, filename)
