@@ -20,7 +20,7 @@ import argparse
 import base64
 import json
 
-from googleapiclient import discovery
+from googleapiclient.discovery import build
 import httplib2
 from oauth2client.client import GoogleCredentials
 # [END import_libraries]
@@ -39,7 +39,7 @@ def get_speech_service():
     http = httplib2.Http()
     credentials.authorize(http)
 
-    return discovery.build(
+    return build(
         'speech', 'v1beta1', http=http, discoveryServiceUrl=DISCOVERY_URL)
 # [END authenticating]
 
